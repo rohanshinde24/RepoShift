@@ -11,10 +11,16 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - run: npm ci
+      - run: python -m pip install -e '.[dev]'
       - run: npm run build && npm run lint && npm test && npm run format:check
+      - run: ruff check reposhift python_tests && ruff format --check reposhift python_tests
       - run: docker compose up -d --wait
       - run: docker build -t reposhift-runner:dev -f runner/Dockerfile .
+      - run: pytest -q python_tests
       - run: npm run fixtures:verify && npm run test:integration
       - if: always()
         uses: actions/upload-artifact@v4

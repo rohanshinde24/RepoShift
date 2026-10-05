@@ -1,6 +1,14 @@
 .git
 node_modules
 dist
+build
+.venv
+__pycache__
+.pytest_cache
+.ruff_cache
+*.egg-info
 .runs
 .env
 reports
+SPEC.md
+HANDOFF.md

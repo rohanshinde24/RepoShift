@@ -1,9 +1,12 @@
 node_modules/
 dist/
+build/
 target/
 .venv/
 *.egg-info/
 __pycache__/
+.pytest_cache/
+.ruff_cache/
 .next/
 .env
 SPEC.md

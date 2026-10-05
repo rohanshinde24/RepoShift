@@ -1,106 +1,141 @@
 # RepoShift
 
-A TypeScript code-migration prototype with graph planning, isolated worktrees, durable execution, compiler-guided repair, and independent verification.
+RepoShift migrates supported TypeScript repositories with a Python coordinator, bounded worker processes, compiler-based dependency planning, Docker checks, and optional model-generated patches. Start with the reference provider to verify the whole workflow without an LLM account or API charges.
 
-**Current status:** a runnable local development slice. Two development migrations work end to end with reference patches; two different task lineages are frozen as a small held-out set. Azure-shaped calls, repair, and usage accounting run in independent processes against a local HTTPS double. A local Ollama adapter can generate patches with no cloud spend. Real Azure inference, real PR publication, and cloud deployment have not been validated. Reference mode and protocol doubles are not model-performance benchmarks.
+The supported recipes are `sdk-options`, `fs-promises`, `sdk-wrapper`, and `fs-settings`. The verifier recognizes these migration patterns. It does not validate arbitrary migration goals.
 
-## Quick start
+## Prerequisites
 
-Requires Node.js 22+, npm, Git, and a running Docker daemon.
+- Python 3.12 or newer. Local development and CI use Python 3.13.
+- Node.js 22 or newer and npm. Python calls a small TypeScript compiler helper for source analysis.
+- Git and Docker with a running daemon. The checks execute in a local Docker image.
+- Enough free disk space for the PostgreSQL and runner images. Ollama is optional.
+
+These instructions use a macOS or Linux shell. The local reference run does not need Azure credentials, a GitHub token, or Ollama.
+
+## Install from a fresh clone
 
 ```sh
+git clone https://github.com/rohanshinde24/RepoShift.git
+cd RepoShift
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
 npm ci
+npm run build
 docker compose up -d --wait
 docker build -t reposhift-runner:dev -f runner/Dockerfile .
-npm run build
-npm test
-npm run fixtures:verify
-npm run test:integration
-npm run demo:local
 ```
 
-The demo launches independent local reference-task worker processes and makes zero model calls. It writes `reports/local/local-demo.json`. `npm run test:workers` injects worker failure and writes `reports/local/worker-reliability.json`.
+`npm run build` creates the TypeScript parser helper used by the Python service. Docker Compose starts a development PostgreSQL instance on `127.0.0.1:55432`; its credentials in `compose.yaml` are for local use only. The runner image is used for build, visible-test, and hidden-test checks.
 
-Reports, diffs, graph/DAG data, visible diagnostics, usage, and state transitions are stored in PostgreSQL and `.runs/<run-id>/report.json`. Fixture validation writes `reports/local/fixtures.json`. Local PostgreSQL listens only on `127.0.0.1:55432`. Its development credentials are not suitable for a cloud installation. `docker compose down` stops the database without deleting its volume.
+## Verify the installation
 
-## Local model pilot
-
-With [Ollama](https://ollama.com/) running locally and `qwen2.5:7b` already installed, run:
+Run these from the repository root with the virtual environment active:
 
 ```sh
-REPOSHIFT_ALLOW_PAID=0 npm run pilot:local-model
+ruff check reposhift python_tests
+ruff format --check reposhift python_tests
+pytest -q python_tests
+python -m reposhift.cli demo sdk-options reference
 ```
 
-This runs one generated-patch attempt for each of the two frozen tasks in configuration C and writes every outcome to `reports/local/ollama-pilot-<batch>.json`. Individual run reports live in `.runs/<run-id>/report.json`. It uses the loopback-only Ollama API and records the installed model digest and token counts. An initial pilot failed on both tasks because Qwen edited outside each task's allowed file set; the path schema was then tightened using a development task. Subsequent runs on these same frozen tasks are exploratory, not an untouched held-out benchmark. The local adapter requests schema-constrained JSON; patch paths, base hashes, builds, tests, and hidden verification are still checked by RepoShift.
+The demo should finish with `"state": "COMPLETE"`, `"verification": {"passed": true, ...}`, and zero model requests. Its complete report is saved at `.runs/<run-id>/report.json`. The Python tests include real PostgreSQL and Docker workflow checks, so they require both services started above. The existing TypeScript regression checks can also be run with `npm test`, `npm run test:integration`, and `npm run fixtures:verify`.
 
-## Azure model runs
+## Run the API
 
-Paid model calls are disabled by default. Set `REPOSHIFT_ALLOW_PAID=1` only when deliberately enabling a budgeted live run; this switch is an opt-in, not a dollar spending cap.
-
-Copy `.env.example` to `.env`, populate your own Azure endpoint/deployment/key, and load it in your shell before starting processes (`set -a; . ./.env; set +a`). Never commit secrets.
+Copy the example configuration and replace its API token with a random value of at least 24 characters. `.env` is ignored by Git and is **not** loaded automatically.
 
 ```sh
-npm run cli -- submit sdk-options azure
-npm run cli -- worker --once
-npm run cli -- status <run-id>
-npm run cli -- cancel <run-id>
+cp .env.example .env
+python -c 'import secrets; print(secrets.token_urlsafe(32))'
 ```
 
-The Azure adapter calls `/openai/v1/chat/completions` with one strict `propose_patch` tool and parallel tool calls disabled. Startup authentication/schema support is currently verified by the first real request, not a separate paid probe. Invalid/refused/truncated tool responses fail closed. Workers reserve each request's token budget transactionally in PostgreSQL before calling the model. Successful responses record usage; ambiguous failures retain their reservations conservatively, including after worker death. This is a token ceiling, not a dollar ceiling. Cost remains unknown until a dated price table is configured.
-
-## API
-
-Set `REPOSHIFT_API_TOKEN` to at least 24 characters. Run `npm start` and, in a separate terminal, `npm run cli -- worker`. The API binds to localhost:3000. All endpoints require `Authorization: Bearer <token>`.
-
-```http
-POST /runs
-Idempotency-Key: a-unique-request-key
-Content-Type: application/json
-
-{"recipe":"sdk-options","provider":"azure","configuration":"C"}
-```
-
-`GET /runs/:id` returns state and artifacts. `POST /runs/:id/cancel` requests cancellation. Repeated identical submissions return the same run; reusing a key for different inputs fails.
-
-For public GitHub source input, configure `REPOSHIFT_ALLOWED_REPOSITORIES=owner/repo` and add `repository: "owner/repo"` and `baseRef: "<full 40-character commit SHA>"` to the request. Only reviewed repositories matching a supplied recipe's file layout and trusted checks are supported. Private-repository acquisition and arbitrary migration goals are not implemented.
-
-Publication is off by default. Set `GITHUB_TOKEN`, `REPOSHIFT_GITHUB_REPOSITORY`, and `publish: true` only for an authorized demo repository containing the exact source snapshot. The publisher checks source contents, creates a deterministic branch and draft PR, and reconciles an ambiguous response. It never merges. Existing remote content that differs from the verified source is rejected.
-
-## What is implemented
-
-- Compiler API import/symbol-reference analysis, reverse dependency expansion, strongly connected component grouping, and DAG scheduling.
-- At most two concurrent patch proposals in separate Git worktrees; serialized integration with stale-patch checks. Targeted context includes affected files, relevant callers/dependencies, and target SDK declarations.
-- PostgreSQL run claims with `SKIP LOCKED`, expiring leases, fencing tokens, durable patch checkpoints, cancellation, and JSON artifacts. DAG tasks are claimed by independent local processes in reference, Ollama, and Azure modes. A coordinator schedules dependencies and integrates accepted outputs. Separate processes share task and model-request budgets through PostgreSQL. Multi-machine execution is not validated.
-- Explicit analysis/planning/execution/build/test/repair/verification/publication states. Three visible-diagnostic repair rounds, 30 model requests, conservative 100,000-token budget, and a 15-minute run deadline.
-- Non-root Docker checks with no egress, dropped capabilities, read-only mounts/root, no host secrets/socket, and resource/time limits. Rootless Docker on Linux remains the deployment target; local tests use Docker Desktop.
-- A separately mounted hidden suite, migration assertions, and a final forbidden-file check. Hidden diagnostics never enter the model's repair context.
-- Authenticated API, CLI, local Ollama and Azure adapters, guarded GitHub publisher, and an A/B/C development evaluation runner.
-
-The Azure model receives one typed patch tool; Ollama receives the equivalent JSON schema. Additional interactive read/reference/check tools, a browser run page, a monetary cap, and cross-host deployment remain follow-up work. The static migration checks deliberately recognize the supplied recipe patterns; they are not a general proof of arbitrary TypeScript migration correctness.
-
-## Evaluation and evidence
-
-The zero-cost [local A-versus-C baseline smoke test](BASELINE.md) compares one development task and records both attempts. [Local validation evidence](VALIDATION.md) records the fixture and integration checks. These are engineering checks, not the résumé's claimed success-rate or latency result.
+Paste the generated value into `REPOSHIFT_API_TOKEN` in `.env`. In each terminal that runs RepoShift or sends API requests, load the file:
 
 ```sh
-# Makes paid model calls: 2 development tasks × 3 configurations × 3 trials.
-npm run benchmark -- --development
-# Optional harness smoke run, explicitly labeled reference-only:
-npm run benchmark -- --development --reference
+set -a
+source .env
+set +a
 ```
 
-A is a flat-context single patch with no repair. B uses the graph/DAG and two workers without repair. C adds bounded repair. Reports include every attempt, success/repair denominators, latency, and tokens; unavailable cost is `null`. `--held-out` selects the two frozen tasks in [benchmarks/v1/manifest.json](benchmarks/v1/manifest.json). This set is too small for a broad success claim. A 20-task held-out set, confidence intervals, 100 fault-injection scenarios, and actual model comparisons remain future release goals in [SPEC.md](SPEC.md).
+Start the API in one terminal and a coordinator in another. Activate the virtual environment and load `.env` in both terminals.
 
-Verifier validation checks five variants per migration: original, reference, incomplete, a behavior bug invisible to visible tests, and a forbidden-file edit. Only the reference must pass all criteria. Integration tests use real PostgreSQL and Docker; Azure repair and GitHub response-loss tests use protocol doubles. Run-level checkpoint tests simulate coordinator lease expiry. Task-level tests actually SIGKILL a child worker after claim, wait for its lease to expire, and verify that a second process completes the task exactly once in the database. This is local process recovery, not evidence of host/network-partition tolerance.
+```sh
+python -m reposhift.cli serve
+```
 
-No 62%→84%, 41% latency improvement, 1,000-failure reliability, or other model-performance result has been established.
+```sh
+python -m reposhift.cli worker
+```
 
-## Zero-cloud-spend development plan
+The API listens on `127.0.0.1:3000`. Submit a local fixture migration from a third terminal with the same environment loaded:
 
-Continue with local PostgreSQL, Docker, reference/service doubles, and the local model pilot. Retain the source, run reports, and a recorded demo. Azure inference, the 180-run held-out benchmark, and cloud hosting are deferred. No Azure VMs or paid model calls are needed for these local checks.
+```sh
+curl -sS -X POST http://127.0.0.1:3000/runs \
+  -H "Authorization: Bearer $REPOSHIFT_API_TOKEN" \
+  -H "Idempotency-Key: local-example-1" \
+  -H "Content-Type: application/json" \
+  -d '{"recipe":"sdk-options","provider":"reference","configuration":"C"}'
+```
 
-The hidden checks cover discount boundaries, negative input rejection, Unicode and spaced filenames, concurrent reads, missing files, malformed JSON, and preservation of false/default values. The two extra fixtures are separate frozen task lineages; their source and checks are protected by recorded hashes. Their first model run exposed an adapter path-schema limitation that was fixed, so future unbiased model metrics require new frozen task lineages.
+The response contains a run ID. Use `GET /runs/<id>` to read its state, artifacts, and events, or `POST /runs/<id>/cancel` to request cancellation. Include the same authorization header on every request. Reusing an idempotency key with the same body returns the same run; use a new key for a new run. The CLI also supports `submit`, `status`, `cancel`, and `demo`; run `python -m reposhift.cli --help` for arguments.
 
-## Optional future deployment gate
+## Choose a patch provider
 
-Only when a budget is available, provide an Azure subscription/region, model endpoint/deployment, authorized GitHub demo repository, and spending ceiling. Then validate real model migrations and PR publication before provisioning the two-VM setup in the spec. Do not expose this development API or execute unreviewed public submissions as a service.
+`reference` uses checked-in reference patches and is the best first run. It makes no model calls. `ollama` uses the local Ollama API at `127.0.0.1:11434` and defaults to `qwen2.5:7b`. After installing Ollama and that model separately, run `python -m reposhift.cli demo sdk-options ollama`. Local generation can fail; RepoShift records the error and stops after its repair budget.
+
+`azure` requires `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`, and `AZURE_OPENAI_API_KEY`. Paid calls are blocked unless `REPOSHIFT_ALLOW_PAID=1` is set. The request and token ceilings are safeguards, not a dollar cap. Real Azure inference has not been validated in this project.
+
+For a public GitHub source, set `REPOSHIFT_ALLOWED_REPOSITORIES=owner/repo` and submit `repository: "owner/repo"` with `baseRef` set to a full 40-character commit SHA. The files must match a supported recipe. To request a draft PR, also set `GITHUB_TOKEN`, `REPOSHIFT_GITHUB_REPOSITORY`, and `publish: true`. Publication verifies that the target repository's base files match the source snapshot and never merges the PR. The Python publisher has a response-loss protocol test, but a real PR has not been created with it yet.
+
+## Run the evaluation harness
+
+This command runs one development task under configurations A and C using reference patches. It checks report generation, not model performance:
+
+```sh
+python -m reposhift.cli benchmark --split development --provider reference --quick
+```
+
+Reports are written to `reports/local/python-benchmark-<batch>.json`. A uses one flat patch without repair. B uses graph planning and bounded workers. C adds up to three visible-test repair rounds. A model comparison requires `--provider ollama` or a deliberately enabled Azure run. The current fixture set is too small to support a broad success-rate claim.
+
+## How the system works
+
+```text
+reviewed source and recipe
+  -> baseline Docker build and visible tests
+  -> TypeScript compiler graph and task DAG
+  -> PostgreSQL-leased Python workers with targeted context
+  -> typed patch and isolated Git worktree validation
+  -> Docker build and visible-test repair loop
+  -> migration, forbidden-file, and hidden-test verification
+  -> optional draft GitHub PR
+```
+
+Python owns the FastAPI service, coordinator, workers, PostgreSQL state, model adapters, patch validation, Docker runner, evaluation harness, and GitHub publisher in `reposhift/`. `src/python-helper.ts` exposes compiler analysis and migration assertions. The earlier TypeScript workflow remains in `src/` for regression comparison. PostgreSQL stores fenced leases, task attempts, model reservations, checkpoints, events, and artifacts. Model calls have a 30-request and 100,000-token ceiling, and runs have a 15-minute deadline. Hidden-test output is not supplied to the repair model.
+
+## Troubleshooting and cleanup
+
+- If Docker checks cannot start, run `docker info`, start the Docker daemon, then rebuild the runner image.
+- If Python says the compiler helper is missing, rerun `npm ci` and `npm run build`.
+- If PostgreSQL connection fails on port 55432, run `docker compose up -d --wait` and check whether another service is using that port.
+- If the API returns 401, load the same `.env` in the request terminal and the API terminal.
+- If a run fails, inspect `.runs/<run-id>/report.json` for the state, visible diagnostics, and error. Hidden-test output is intentionally omitted.
+
+Stop the local database with `docker compose down`. This keeps its volume; `docker compose down -v` also deletes the local database data.
+
+## Measured local results and limits
+
+Python reference migrations for `sdk-options` and `fs-promises` completed locally and passed build, visible tests, migration assertions, forbidden-file checks, and hidden tests. This validates the control path, not model performance. An October 5, 2026 reference-only smoke run used one development task per configuration: A passed in 15,461 ms and C passed in 12,942 ms, with zero model tokens in both.
+
+Three sequential Python runs on the same `sdk-options` development task used local Ollama `qwen2.5:7b` and configuration C. The prompt and guard changed between runs, so these are debugging outcomes, not independent benchmark trials:
+
+| Local run | Final result | Elapsed | Model requests | Recorded tokens | Repairs |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Initial Python prompt | Failed, repair budget exhausted | 244,715 ms | 6 | 5,081 | 3 |
+| Public API instruction added | Failed, repair budget exhausted | 186,709 ms | 6 | 6,531 | 3 |
+| Recipe-specific no-op guard added | Passed hidden verification | 53,551 ms | 2 | 1,246 | 0 |
+
+The guard avoided a model call for an unchanged caller file. [The earlier TypeScript baseline smoke test](BASELINE.md) and [local validation evidence](VALIDATION.md) record separate checks. Generated run reports are ignored by Git.
+
+The résumé figures of 62% to 84% success, 41% lower median time, and zero duplicate mutations across 1,000 injected failures have **not** been reproduced. Real Azure inference, a real Python-generated GitHub PR, cross-host execution, and cloud deployment also remain unverified.
