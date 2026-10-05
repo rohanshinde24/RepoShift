@@ -1,0 +1,21 @@
+{
+  "id": "sdk-wrapper",
+  "family": "sdk-options",
+  "version": 1,
+  "split": "held-out",
+  "goal": "Migrate SDK quotes in a wrapper and a direct cart call to v2 object arguments, preserving the public cart API and behavior.",
+  "allowedFiles": [
+    "src/formatter.ts",
+    "src/cart.ts",
+    "src/summary.ts"
+  ],
+  "seedFiles": [
+    "src/formatter.ts",
+    "src/cart.ts"
+  ],
+  "behaviorBug": {
+    "file": "src/cart.ts",
+    "find": "quote({amount:amount*units,currency,discount})",
+    "replace": "quote({amount:amount*units,currency,discount:0.1})"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+target/
+.venv/
+*.egg-info/
+__pycache__/
+.next/
+.env
+SPEC.md
+HANDOFF.md
+.runs/
+reports/local/
+*.log
+.DS_Store

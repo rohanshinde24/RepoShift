@@ -1,0 +1,21 @@
+{
+  "id": "sdk-options",
+  "version": 1,
+  "split": "development",
+  "goal": "Migrate all application SDK calls from lib/sdk-v1 to lib/sdk-v2 option objects. Preserve public application APIs and behavior.",
+  "allowedFiles": [
+    "src/retail.ts",
+    "src/wholesale.ts",
+    "src/service.ts"
+  ],
+  "seedFiles": [
+    "src/retail.ts",
+    "src/wholesale.ts"
+  ],
+  "family": "sdk-options",
+  "behaviorBug": {
+    "file": "src/wholesale.ts",
+    "find": "{amount, currency, discount}",
+    "replace": "{amount, currency, discount: 0.1}"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "fs-settings",
+  "family": "fs-promises",
+  "version": 1,
+  "split": "held-out",
+  "goal": "Migrate callback-based readText to node:fs/promises and propagate the async API through settings loading, preserving dashboard output and errors.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/settings.ts",
+    "src/dashboard.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ],
+  "behaviorBug": {
+    "file": "src/settings.ts",
+    "find": "enabled:data.enabled??true",
+    "replace": "enabled:true"
+  }
+}

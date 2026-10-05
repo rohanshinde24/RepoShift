@@ -1,0 +1,34 @@
+{
+  "version": "v1",
+  "status": "frozen-before-model-evaluation",
+  "split": "held-out",
+  "tasks": {
+    "sdk-wrapper": {
+      "base/lib/sdk-v1.ts": "fd3a5810b28e7d361f70e3f37ed5c2041d51af32ec264fa06fbba08f9bfdf51f",
+      "base/lib/sdk-v2.ts": "e1a0a1a1d5d5e2392b1c1acfb3483c44fbea8ca7b476267e00bfb28ac11a61e4",
+      "base/src/cart.ts": "19f8d118583cadaa3e8298ce119c7c634f64af7edcf134fc23578012a1d22d0a",
+      "base/src/formatter.ts": "98e4a1784c9835198c376d071e0c5b3fe1d77cc6254f20664e72dbde24a0cb93",
+      "base/src/summary.ts": "d1cac7d81ecb22a5fb4b0fcbe9366b3f4b2f086a2edbbbbd850b65d1b6007e7d",
+      "hidden.cjs": "02eaa278f309efa506e50abb7f436cc953458bc9cda962459464cda47459e54d",
+      "manifest.json": "11b5599a326d523853d897f8de9f3c26cc35c472db4b4dcd401b68b0a79c9426",
+      "reference/src/cart.ts": "c5a66a237b61d836b4f062f066d097adb8e6209cbb7816c549fcd99031e72600",
+      "reference/src/formatter.ts": "af55911e555ea4a84bb51f54b3cd993d9f43801f66bebc68a7a4cdd27d81d66d",
+      "visible.cjs": "5c56c1dc1f5dfd43555ea8d796ef4e5bb51d2488f6053862513dd2c2dedf4e44"
+    },
+    "fs-settings": {
+      "base/src/dashboard.ts": "ed35b05e5839f1743fbdcb6e5a7c951452a95f1c16ae1f93b4e03243cc743b19",
+      "base/src/reader.ts": "0c0b681941ba0a662c9b067ae5334448bc5a908c3df98a251b1a276bb98cca4d",
+      "base/src/settings.ts": "6b74947ed23bd1e1ada92ba33e810f6cb7b88c9b374480548fb15f5693ffae47",
+      "hidden.cjs": "09c64a8bf65e5e07b3ea8bdf03da29dd8b3b749edf590af1862054171e90b00c",
+      "manifest.json": "6acffd13eb02b2eb8f3cde8ba671144fe47ddebf88c48ea1bb9ba65d96a035c5",
+      "reference/src/reader.ts": "49862111929f905be5b34c5817101eb8d5f746da340841ef49285dddc986ef07",
+      "reference/src/settings.ts": "596e07a47aaf981a45422548199d484604ebc888bc95ef89349bac4993a58f1b",
+      "visible.cjs": "3569316674937763e64902221e3dba1b6c72f57ee92d964cceb84fd37d87e8bd"
+    }
+  },
+  "runnerInputs": {
+    "runner/Dockerfile": "25966a9228232450b47bf5a67cda116616e6f308b3621d325b8fe74f0c4bdfe9",
+    "runner/check.cjs": "142dfefce727fc9efcae73f1f32af6ad73df91024052210e6ecea653ab35d8ab",
+    "package-lock.json": "88139c55acb295d923178b77e20bf2fbc12727fadc557cb95c6689b152907f90"
+  }
+}

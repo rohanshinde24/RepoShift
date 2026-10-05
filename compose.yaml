@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995
+    environment:
+      POSTGRES_USER: reposhift
+      POSTGRES_PASSWORD: reposhift
+      POSTGRES_DB: reposhift
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reposhift"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+volumes:
+  postgres-data:

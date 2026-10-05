@@ -1,0 +1,25 @@
+name: verify
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build && npm run lint && npm test && npm run format:check
+      - run: docker compose up -d --wait
+      - run: docker build -t reposhift-runner:dev -f runner/Dockerfile .
+      - run: npm run fixtures:verify && npm run test:integration
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-verification
+          path: reports/local/
+      - if: always()
+        run: docker compose down

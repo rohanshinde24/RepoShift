@@ -1,0 +1,19 @@
+{
+  "id": "fs-promises",
+  "version": 1,
+  "split": "development",
+  "goal": "Replace filesystem callbacks with node:fs/promises. Make readText return Promise<string>, propagate await through config callers, preserve exported loadConfig behavior including errors.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/config.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ],
+  "family": "fs-promises",
+  "behaviorBug": {
+    "file": "src/config.ts",
+    "find": "data.enabled ?? true",
+    "replace": "true"
+  }
+}
