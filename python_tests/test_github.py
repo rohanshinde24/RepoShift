@@ -10,6 +10,10 @@ from reposhift.github import publish
 def test_python_publisher_reconciles_lost_pr_response(monkeypatch):
     monkeypatch.setenv("REPOSHIFT_GITHUB_REPOSITORY", "operator/demo")
     monkeypatch.setenv("GITHUB_TOKEN", "test-only")
+    monkeypatch.setattr(
+        "reposhift.github._commit_identity",
+        lambda: {"name": "Repo Owner", "email": "owner@example.com"},
+    )
     state = {"branch": False, "pr": False, "creates": 0}
 
     def handle(request):
@@ -17,7 +21,7 @@ def test_python_publisher_reconciles_lost_pr_response(monkeypatch):
         method = request.method
         if route == "/pulls" and method == "GET":
             body = [{"html_url": "https://github.com/operator/demo/pull/1"}] if state["pr"] else []
-        elif route in {"", "/"}:
+        elif route == "":
             body = {"default_branch": "main"}
         elif route == "/git/ref/heads/main":
             body = {"object": {"sha": "base"}}
@@ -32,6 +36,7 @@ def test_python_publisher_reconciles_lost_pr_response(monkeypatch):
                 return httpx.Response(404, json={})
             body = {"object": {"sha": "target-commit"}}
         elif route == "/git/commits" and method == "POST":
+            state["commit_payload"] = json.loads(request.content)
             body = {"sha": "target-commit"}
         elif route == "/git/refs":
             state["branch"] = True
@@ -56,3 +61,9 @@ def test_python_publisher_reconciles_lost_pr_response(monkeypatch):
         == "https://github.com/operator/demo/pull/1"
     )
     assert state["creates"] == 1
+    assert state["commit_payload"]["message"] == "Apply sdk-options migration"
+    assert state["commit_payload"]["author"] == {
+        "name": "Repo Owner",
+        "email": "owner@example.com",
+    }
+    assert state["commit_payload"]["committer"] == state["commit_payload"]["author"]

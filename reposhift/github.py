@@ -1,11 +1,22 @@
 import base64
 import os
 import re
+import subprocess
 from urllib.parse import quote
 
 import httpx
 
-from .core import digest
+from .core import ROOT, digest
+
+
+def _commit_identity() -> dict | None:
+    values = []
+    for key in ("user.name", "user.email"):
+        result = subprocess.run(["git", "config", key], cwd=ROOT, capture_output=True, text=True, check=False)
+        if result.returncode or not result.stdout.strip():
+            return None
+        values.append(result.stdout.strip())
+    return {"name": values[0], "email": values[1]}
 
 
 def publish(run_id: str, recipe_id: str, before: dict, after: dict) -> str:
@@ -26,7 +37,8 @@ def publish(run_id: str, recipe_id: str, before: dict, after: dict) -> str:
     )
 
     def api(route: str, method="GET", payload=None, missing=False):
-        response = client.request(method, route, json=payload)
+        endpoint = f"https://api.github.com/repos/{repository}" if not route else route
+        response = client.request(method, endpoint, json=payload)
         if missing and response.status_code == 404:
             return None
         response.raise_for_status()
@@ -57,14 +69,19 @@ def publish(run_id: str, recipe_id: str, before: dict, after: dict) -> str:
             if current["tree"]["sha"] != target_tree:
                 raise ValueError("Existing publication branch differs from verified patch")
         else:
+            payload = {
+                "message": f"Apply {recipe_id} migration",
+                "tree": target_tree,
+                "parents": [base],
+            }
+            identity = _commit_identity()
+            if identity:
+                payload["author"] = identity
+                payload["committer"] = identity
             created = api(
                 "/git/commits",
                 "POST",
-                {
-                    "message": f"RepoShift: {recipe_id}\n\nRun: {run_id}",
-                    "tree": target_tree,
-                    "parents": [base],
-                },
+                payload,
             )
             api("/git/refs", "POST", {"ref": f"refs/heads/{branch}", "sha": created["sha"]})
         prior = api(f"/pulls?state=all&head={head}")
