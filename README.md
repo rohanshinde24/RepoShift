@@ -6,12 +6,12 @@ The supported recipes are `sdk-options`, `fs-promises`, `sdk-wrapper`, and `fs-s
 
 ## Prerequisites
 
-- Python 3.12 or newer. Local development and CI use Python 3.13.
+- Python 3.12 or newer. CI uses Python 3.13.
 - Node.js 22 or newer and npm. Python calls a small TypeScript compiler helper for source analysis.
 - Git and Docker with a running daemon. The checks execute in a local Docker image.
 - Enough free disk space for the PostgreSQL and runner images. Ollama is optional.
 
-These instructions use a macOS or Linux shell. The local reference run does not need Azure credentials, a GitHub token, or Ollama.
+These instructions use a macOS or Linux shell. The reference run does not need Azure credentials, a GitHub token, or Ollama.
 
 ## Install from a fresh clone
 
@@ -40,7 +40,7 @@ pytest -q python_tests
 python -m reposhift.cli demo sdk-options reference
 ```
 
-The demo should finish with `"state": "COMPLETE"`, `"verification": {"passed": true, ...}`, and zero model requests. Its complete report is saved at `.runs/<run-id>/report.json`. The Python tests include real PostgreSQL and Docker workflow checks, so they require both services started above. The existing TypeScript regression checks can also be run with `npm test`, `npm run test:integration`, and `npm run fixtures:verify`.
+The demo should finish with `"state": "COMPLETE"`, `"verification": {"passed": true, ...}`, and zero model requests. Its complete report is saved at `.runs/<run-id>/report.json`. The Python tests include real PostgreSQL and Docker workflow checks, so they require both services started above.
 
 ## Run the API
 
@@ -69,7 +69,7 @@ python -m reposhift.cli serve
 python -m reposhift.cli worker
 ```
 
-The API listens on `127.0.0.1:3000`. Submit a local fixture migration from a third terminal with the same environment loaded:
+The API listens on `127.0.0.1:3000`. Submit a fixture migration from a third terminal with the same environment loaded:
 
 ```sh
 curl -sS -X POST http://127.0.0.1:3000/runs \
@@ -83,21 +83,21 @@ The response contains a run ID. Use `GET /runs/<id>` to read its state, artifact
 
 ## Choose a patch provider
 
-`reference` uses checked-in reference patches and is the best first run. It makes no model calls. `ollama` uses the local Ollama API at `127.0.0.1:11434` and defaults to `qwen2.5:7b`. After installing Ollama and that model separately, run `python -m reposhift.cli demo sdk-options ollama`. Local generation can fail; RepoShift records the error and stops after its repair budget.
+`reference` uses checked-in reference patches and is the best first run. It makes no model calls. `ollama` uses the Ollama API at `127.0.0.1:11434` and defaults to `qwen2.5:7b`. After installing Ollama and that model separately, run `python -m reposhift.cli demo sdk-options ollama`. If generation fails, RepoShift records the error and stops after its repair budget.
 
-`azure` requires `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`, and `AZURE_OPENAI_API_KEY`. Paid calls are blocked unless `REPOSHIFT_ALLOW_PAID=1` is set. The request and token ceilings are safeguards, not a dollar cap. Real Azure inference has not been validated in this project.
+`azure` requires `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`, and `AZURE_OPENAI_API_KEY`. Paid calls are blocked unless `REPOSHIFT_ALLOW_PAID=1` is set. The request and token ceilings are safeguards, not a dollar cap.
 
-For a public GitHub source, set `REPOSHIFT_ALLOWED_REPOSITORIES=owner/repo` and submit `repository: "owner/repo"` with `baseRef` set to a full 40-character commit SHA. The files must match a supported recipe. To request a draft PR, also set `GITHUB_TOKEN`, `REPOSHIFT_GITHUB_REPOSITORY`, and `publish: true`. Publication verifies that the target repository's base files match the source snapshot and never merges the PR. The Python publisher has a response-loss protocol test, but a real PR has not been created with it yet.
+For a public GitHub source, set `REPOSHIFT_ALLOWED_REPOSITORIES=owner/repo` and submit `repository: "owner/repo"` with `baseRef` set to a full 40-character commit SHA. The files must match a supported recipe. To request a draft PR, also set `GITHUB_TOKEN`, `REPOSHIFT_GITHUB_REPOSITORY`, and `publish: true`. Publication verifies that the target repository's base files match the source snapshot and never merges the PR.
 
 ## Run the evaluation harness
 
-This command runs one development task under configurations A and C using reference patches. It checks report generation, not model performance:
+This command runs one task under configurations A and C using reference patches to check the evaluation harness:
 
 ```sh
 python -m reposhift.cli benchmark --split development --provider reference --quick
 ```
 
-Reports are written to `reports/local/python-benchmark-<batch>.json`. A uses one flat patch without repair. B uses graph planning and bounded workers. C adds up to three visible-test repair rounds. A model comparison requires `--provider ollama` or a deliberately enabled Azure run. The current fixture set is too small to support a broad success-rate claim.
+Reports are written to `reports/local/python-benchmark-<batch>.json`. A uses one flat patch without repair. B uses graph planning and bounded workers. C adds up to three visible-test repair rounds. Reference patches make no model calls; use `--provider ollama` or a deliberately enabled Azure run to evaluate model-generated patches.
 
 ## How the system works
 
@@ -112,7 +112,7 @@ reviewed source and recipe
   -> optional draft GitHub PR
 ```
 
-Python owns the FastAPI service, coordinator, workers, PostgreSQL state, model adapters, patch validation, Docker runner, evaluation harness, and GitHub publisher in `reposhift/`. `src/python-helper.ts` exposes compiler analysis and migration assertions. The earlier TypeScript workflow remains in `src/` for regression comparison. PostgreSQL stores fenced leases, task attempts, model reservations, checkpoints, events, and artifacts. Model calls have a 30-request and 100,000-token ceiling, and runs have a 15-minute deadline. Hidden-test output is not supplied to the repair model.
+Python owns the FastAPI service, coordinator, workers, PostgreSQL state, model adapters, patch validation, Docker runner, evaluation harness, and GitHub publisher in `reposhift/`. `src/python-helper.ts` exposes compiler analysis and migration assertions. PostgreSQL stores fenced leases, task attempts, model reservations, checkpoints, events, and artifacts. Model calls have a 30-request and 100,000-token ceiling, and runs have a 15-minute deadline. Hidden-test output is not supplied to the repair model.
 
 ## Troubleshooting and cleanup
 
@@ -123,19 +123,3 @@ Python owns the FastAPI service, coordinator, workers, PostgreSQL state, model a
 - If a run fails, inspect `.runs/<run-id>/report.json` for the state, visible diagnostics, and error. Hidden-test output is intentionally omitted.
 
 Stop the local database with `docker compose down`. This keeps its volume; `docker compose down -v` also deletes the local database data.
-
-## Measured local results and limits
-
-Python reference migrations for `sdk-options` and `fs-promises` completed locally and passed build, visible tests, migration assertions, forbidden-file checks, and hidden tests. This validates the control path, not model performance. An October 5, 2026 reference-only smoke run used one development task per configuration: A passed in 15,461 ms and C passed in 12,942 ms, with zero model tokens in both.
-
-Three sequential Python runs on the same `sdk-options` development task used local Ollama `qwen2.5:7b` and configuration C. The prompt and guard changed between runs, so these are debugging outcomes, not independent benchmark trials:
-
-| Local run | Final result | Elapsed | Model requests | Recorded tokens | Repairs |
-| --- | --- | ---: | ---: | ---: | ---: |
-| Initial Python prompt | Failed, repair budget exhausted | 244,715 ms | 6 | 5,081 | 3 |
-| Public API instruction added | Failed, repair budget exhausted | 186,709 ms | 6 | 6,531 | 3 |
-| Recipe-specific no-op guard added | Passed hidden verification | 53,551 ms | 2 | 1,246 | 0 |
-
-The guard avoided a model call for an unchanged caller file. [The earlier TypeScript baseline smoke test](BASELINE.md) and [local validation evidence](VALIDATION.md) record separate checks. Generated run reports are ignored by Git.
-
-The résumé figures of 62% to 84% success, 41% lower median time, and zero duplicate mutations across 1,000 injected failures have **not** been reproduced. Real Azure inference, a real Python-generated GitHub PR, cross-host execution, and cloud deployment also remain unverified.
