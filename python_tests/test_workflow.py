@@ -1,3 +1,4 @@
+import threading
 import time
 import uuid
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
@@ -5,7 +6,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 import pytest
 
 from reposhift.store import Store
-from reposhift.workflow import execute
+from reposhift.workflow import _task_heartbeat, execute
 
 
 def isolated_url(base: str, schema: str) -> str:
@@ -69,5 +70,57 @@ def test_expired_task_owner_cannot_write_after_replacement(monkeypatch):
             store.finish_task(first, patch)
         assert store.task(run["id"], "migration")["result"] == patch
     finally:
+        with admin.connect() as conn:
+            conn.execute(f"DROP SCHEMA {schema} CASCADE")
+
+
+def test_slow_task_keeps_lease_after_transient_heartbeat_error(monkeypatch, caplog):
+    admin = Store()
+    schema = "py_test_" + uuid.uuid4().hex
+    with admin.connect() as conn:
+        conn.execute(f"CREATE SCHEMA {schema}")
+    stop = threading.Event()
+    heartbeat = None
+    try:
+        url = isolated_url(admin.url, schema)
+        monkeypatch.setenv("DATABASE_URL", url)
+        store = Store(url)
+        store.init()
+        submitted = store.submit({"recipe": "sdk-options", "provider": "ollama"}, str(uuid.uuid4()))
+        run = store.claim("coordinator", submitted["id"])
+        store.save(run, "EXECUTE")
+        store.enqueue(run, "slow-model", {"recipe": "sdk-options", "files": {}, "allowed": []})
+        task = store.claim_task(run["id"], "worker-one", lease_ms=600)
+
+        class FlakyHeartbeat:
+            calls = 0
+
+            def heartbeat_task(self, claimed, lease_ms):
+                self.calls += 1
+                if self.calls == 1:
+                    raise OSError("temporary database error")
+                store.heartbeat_task(claimed, lease_ms=lease_ms)
+
+        flaky = FlakyHeartbeat()
+        errors = []
+        heartbeat = threading.Thread(
+            target=_task_heartbeat,
+            args=(stop, flaky, task, errors),
+            kwargs={"lease_ms": 600, "interval": 0.1, "retry_interval": 0.05},
+        )
+        heartbeat.start()
+        time.sleep(1.4)
+        assert flaky.calls > 2
+        assert not errors
+        assert not stop.is_set()
+        assert store.claim_task(run["id"], "worker-two", lease_ms=600) is None
+        patch = {"base_hash": "x", "edits": []}
+        store.finish_task(task, patch)
+        assert store.task(run["id"], "slow-model")["attempts"] == 1
+        assert "temporary database error" in caplog.text
+    finally:
+        stop.set()
+        if heartbeat:
+            heartbeat.join(timeout=2)
         with admin.connect() as conn:
             conn.execute(f"DROP SCHEMA {schema} CASCADE")

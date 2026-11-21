@@ -1,3 +1,4 @@
+import logging
 import multiprocessing
 import os
 import threading
@@ -18,7 +19,9 @@ from .core import (
     tree,
 )
 from .provider import propose
-from .store import Store
+from .store import TASK_LEASE_MS, Store
+
+logger = logging.getLogger(__name__)
 
 
 def _heartbeat(stop: threading.Event, interval: float, action, errors: list):
@@ -29,6 +32,32 @@ def _heartbeat(stop: threading.Event, interval: float, action, errors: list):
             errors.append(exc)
             stop.set()
             return
+
+
+def _task_heartbeat(stop, store, task, errors, lease_ms=TASK_LEASE_MS, interval=3.0, retry_interval=1.0):
+    last_renewal = time.monotonic()
+    delay = interval
+    while not stop.wait(delay):
+        try:
+            store.heartbeat_task(task, lease_ms=lease_ms)
+        except Exception as exc:
+            elapsed = time.monotonic() - last_renewal
+            logger.warning(
+                "Task heartbeat failed for %s/%s fence %s after %.1fs: %s",
+                task["run_id"],
+                task["id"],
+                task["fence"],
+                elapsed,
+                exc,
+            )
+            if isinstance(exc, RuntimeError) or elapsed >= lease_ms / 1000 - interval:
+                errors.append(exc)
+                stop.set()
+                return
+            delay = retry_interval
+        else:
+            last_renewal = time.monotonic()
+            delay = interval
 
 
 def task_worker(run_id: str, stop):
@@ -45,8 +74,8 @@ def task_worker(run_id: str, stop):
         heartbeat_stop = threading.Event()
         errors = []
         heartbeat = threading.Thread(
-            target=_heartbeat,
-            args=(heartbeat_stop, 3.0, lambda current=task: store.heartbeat_task(current), errors),
+            target=_task_heartbeat,
+            args=(heartbeat_stop, store, task, errors),
             daemon=True,
         )
         heartbeat.start()

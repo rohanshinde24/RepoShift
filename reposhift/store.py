@@ -8,6 +8,8 @@ from psycopg.types.json import Jsonb
 
 from .core import digest
 
+TASK_LEASE_MS = 30000
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
  id uuid PRIMARY KEY, key text UNIQUE NOT NULL, request_hash text NOT NULL,
@@ -241,7 +243,7 @@ class Store:
     def task(self, run_id, task_id):
         return self.one("SELECT * FROM tasks WHERE run_id=%s AND id=%s", (run_id, task_id))
 
-    def claim_task(self, run_id, owner, lease_ms=10000):
+    def claim_task(self, run_id, owner, lease_ms=TASK_LEASE_MS):
         with self.connect() as conn:
             parent = conn.execute(
                 "SELECT * FROM runs WHERE id=%s AND state IN ('EXECUTE','REPAIR') "
@@ -289,7 +291,7 @@ class Store:
                 )
             return task
 
-    def heartbeat_task(self, task, lease_ms=10000):
+    def heartbeat_task(self, task, lease_ms=TASK_LEASE_MS):
         row = self.one(
             "UPDATE tasks SET lease_until=now()+(%s * interval '1 millisecond') "
             "WHERE run_id=%s AND id=%s AND fence=%s AND lease_owner=%s "
