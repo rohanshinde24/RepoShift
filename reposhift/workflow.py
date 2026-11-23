@@ -13,15 +13,21 @@ from .core import (
     check,
     git,
     prepare_source,
+    probe_path,
     recipe,
     resolve_image,
     snapshot,
     tree,
 )
 from .provider import propose
+from .regression import capture_probe, compare_probes
 from .store import TASK_LEASE_MS, Store
 
 logger = logging.getLogger(__name__)
+
+
+def patch_changes_files(files: dict[str, str], patch: dict) -> bool:
+    return any(files.get(edit["path"]) != edit["content"] for edit in patch["edits"])
 
 
 def _heartbeat(stop: threading.Event, interval: float, action, errors: list):
@@ -41,6 +47,8 @@ def _task_heartbeat(stop, store, task, errors, lease_ms=TASK_LEASE_MS, interval=
         try:
             store.heartbeat_task(task, lease_ms=lease_ms)
         except Exception as exc:
+            if stop.is_set():
+                return
             elapsed = time.monotonic() - last_renewal
             logger.warning(
                 "Task heartbeat failed for %s/%s fence %s after %.1fs: %s",
@@ -79,19 +87,21 @@ def task_worker(run_id: str, stop):
             daemon=True,
         )
         heartbeat.start()
+        patch = None
+        error = None
         try:
             patch = propose(store, run, task)
             if errors or heartbeat_stop.is_set() or stop.is_set():
                 raise RuntimeError("Task lease lost or cancelled")
-            store.finish_task(task, patch)
         except Exception as exc:
-            try:
-                store.finish_task(task, error=str(exc)[:2000])
-            except Exception:
-                pass
+            error = str(exc)[:2000]
         finally:
             heartbeat_stop.set()
             heartbeat.join(timeout=1)
+        try:
+            store.finish_task(task, patch if error is None else None, error=error)
+        except Exception:
+            pass
 
 
 class WorkerPool:
@@ -137,7 +147,7 @@ def execute(store: Store, run: dict):
     base_dir = ROOT / ".runs" / str(run["id"]) / f"attempt-{run['fence']}"
     checkout = base_dir / "checkout"
     checkout.mkdir(parents=True, exist_ok=True)
-    started = run["created_at"].timestamp()
+    deadline = None
     stopped = threading.Event()
     heartbeat_errors = []
     pool = None
@@ -152,7 +162,7 @@ def execute(store: Store, run: dict):
     def guard():
         if heartbeat_errors:
             raise heartbeat_errors[0]
-        if time.time() - started > 900:
+        if deadline is None or time.monotonic() > deadline:
             raise TimeoutError("Run deadline exceeded")
         if store.get(run["id"])["cancel_requested"]:
             raise RuntimeError("Cancelled")
@@ -161,7 +171,7 @@ def execute(store: Store, run: dict):
         guard()
         store.save(run, state, detail)
 
-    def queued_patch(task_id, files, allowed, context=None, diagnostics=None):
+    def queued_patch(task_id, files, allowed, context=None, diagnostics=None, original=None):
         store.enqueue(
             run,
             task_id,
@@ -171,6 +181,7 @@ def execute(store: Store, run: dict):
                 "allowed": allowed,
                 "context": context,
                 "diagnostics": diagnostics,
+                "original": original,
             },
         )
         while True:
@@ -185,7 +196,30 @@ def execute(store: Store, run: dict):
                 return pending["result"]
             time.sleep(0.1)
 
+    def accept_repair(repair_id, patch, allowed):
+        repair_dir = base_dir / repair_id
+        git(checkout, "worktree", "add", "--detach", str(repair_dir), "HEAD")
+        apply_patch(repair_dir, patch, allowed)
+        run["checkpoint"]["patches"].append({"task": repair_id, "patch": patch})
+        store.save(run, "REPAIR")
+        apply_patch(checkout, patch, allowed)
+        git(checkout, "add", ".")
+        git(checkout, "commit", "--allow-empty", "-m", "Repair")
+        store.artifact(run, "graph", compiler("analyze", root=str(checkout)))
+
+    def measured_probe(name):
+        started = time.monotonic_ns()
+        try:
+            return capture_probe(checkout, manifest["id"], image)
+        finally:
+            store.artifact(run, name, {"durationMs": (time.monotonic_ns() - started) // 1_000_000})
+
     try:
+        age = store.one(
+            "SELECT EXTRACT(EPOCH FROM clock_timestamp() - created_at) AS seconds FROM runs WHERE id=%s",
+            (run["id"],),
+        )["seconds"]
+        deadline = time.monotonic() + max(0, 900 - max(0, float(age)))
         if run["input"]["provider"] == "azure" and os.getenv("REPOSHIFT_ALLOW_PAID") != "1":
             raise RuntimeError("Paid model calls are disabled")
         guard()
@@ -225,6 +259,10 @@ def execute(store: Store, run: dict):
                 store.artifact(run, f"baseline-{phase}", result)
                 if result["code"]:
                     raise RuntimeError("Baseline repository checks failed")
+        baseline_probe = None
+        if probe_path(manifest["id"]) is not None:
+            baseline_probe = measured_probe("probe-baseline")
+            store.artifact(run, "regression-baseline", baseline_probe)
         graph = compiler("analyze", root=str(checkout))
         store.artifact(run, "graph", graph)
         for saved in run["checkpoint"]["patches"]:
@@ -294,33 +332,140 @@ def execute(store: Store, run: dict):
             build = check(checkout, manifest["id"], "build", image)
             store.artifact(run, f"build-{run['checkpoint']['repairs']}", build)
             visible = {"code": 1, "output": ""}
+            migration = False
+            regression = {"passed": None if baseline_probe is None else True, "cases": 0, "diagnostic": ""}
             if build["code"] == 0:
                 transition("TEST")
                 visible = check(checkout, manifest["id"], "visible", image)
                 store.artifact(run, f"visible-{run['checkpoint']['repairs']}", visible)
-            if build["code"] == 0 and visible["code"] == 0:
+                if visible["code"] == 0:
+                    migration = compiler("assert", files=tree(checkout), recipe=manifest)
+                    store.artifact(run, f"migration-{run['checkpoint']['repairs']}", {"passed": migration})
+                    if migration and baseline_probe is not None:
+                        try:
+                            regression = compare_probes(
+                                baseline_probe,
+                                measured_probe(f"probe-{run['checkpoint']['repairs']}"),
+                            )
+                        except (RuntimeError, ValueError) as exc:
+                            regression = {
+                                "passed": False,
+                                "cases": len(baseline_probe),
+                                "diagnostic": str(exc)[-2000:],
+                            }
+                        store.artifact(run, f"regression-{run['checkpoint']['repairs']}", regression)
+            if (
+                build["code"] == 0
+                and visible["code"] == 0
+                and migration
+                and regression["passed"] is not False
+            ):
                 break
-            if run["checkpoint"]["repairs"] >= (3 if run["input"].get("configuration", "C") == "C" else 0):
+            if run["checkpoint"]["repairs"] >= (
+                3 if run["input"].get("configuration", "C") in {"A", "C"} else 0
+            ):
                 raise RuntimeError("Repair budget exhausted")
             run["checkpoint"]["repairs"] += 1
             transition("REPAIR")
             repair_id = f"repair-{run['checkpoint']['repairs']}"
             files = tree(checkout)
+            if regression["passed"] is False:
+                deterministic_edit = compiler(
+                    "repair-fallback-catch", before=before, after=files, allowed=manifest["allowedFiles"]
+                )
+                tool_kind = "rethrow-single-fallback-catch"
+                if deterministic_edit is None and regression.get("failureKind") == "error-change":
+                    deterministic_edit = compiler(
+                        "repair-error-wrapper", before=before, after=files, allowed=manifest["allowedFiles"]
+                    )
+                    tool_kind = "rethrow-single-error-wrapper"
+                if deterministic_edit is not None:
+                    patch = {"base_hash": snapshot(files), "edits": [deterministic_edit]}
+                    store.artifact(
+                        run,
+                        f"repair-tool-{run['checkpoint']['repairs']}",
+                        {"kind": tool_kind, "file": deterministic_edit["path"]},
+                    )
+                    accept_repair(repair_id, patch, [deterministic_edit["path"]])
+                    continue
+            repair_allowed = manifest["allowedFiles"]
+            repair_context = None
+            original = None
+            focus_note = ""
+            if regression["passed"] is False:
+                changed = [
+                    name
+                    for name in repair_allowed
+                    if name in before and name in files and before[name] != files[name]
+                ]
+                original = {name: before[name] for name in changed}
+                focus_note = (
+                    " Compare the changed files with originalFiles to preserve behavior "
+                    "on the failing probe case."
+                    if changed
+                    else ""
+                )
+            if regression.get("failureKind") == "lost-rejection":
+                candidates = compiler("fallback-catches", before=before, after=files, allowed=repair_allowed)
+                if len(candidates) == 1:
+                    repair_allowed = candidates
+                    repair_context = {name: files[name] for name in candidates}
+                    original = {name: before[name] for name in candidates}
+                    focus_note += (
+                        f" Focus this repair on {candidates[0]}. A newly introduced catch handler "
+                        "returns a fallback value. Propagate the caught error instead."
+                    )
+                    store.artifact(
+                        run,
+                        f"repair-focus-{run['checkpoint']['repairs']}",
+                        {"reason": "lost-rejection", "allowedFiles": candidates},
+                    )
+            diagnostics = (
+                build["output"]
+                + visible["output"]
+                + regression["diagnostic"]
+                + focus_note
+                + (
+                    "Migration assertion failed. Keep the shared promise-returning readText(path) "
+                    "API and update callers to use its one-argument form. "
+                    "Do not import node:fs/promises in callers or bypass readText.\n"
+                    if not migration
+                    and build["code"] == 0
+                    and visible["code"] == 0
+                    and manifest["family"] == "fs-promises"
+                    else "Migration assertion failed. Use sdk-v2 object-style quote calls.\n"
+                    if not migration and build["code"] == 0 and visible["code"] == 0
+                    else ""
+                )
+            )[-16000:]
             patch = queued_patch(
                 repair_id,
                 files,
-                manifest["allowedFiles"],
-                diagnostics=(build["output"] + visible["output"])[-16000:],
+                repair_allowed,
+                context=repair_context,
+                diagnostics=diagnostics,
+                original=original,
             )
-            repair_dir = base_dir / repair_id
-            git(checkout, "worktree", "add", "--detach", str(repair_dir), "HEAD")
-            apply_patch(repair_dir, patch, manifest["allowedFiles"])
-            run["checkpoint"]["patches"].append({"task": repair_id, "patch": patch})
-            store.save(run, "REPAIR")
-            apply_patch(checkout, patch, manifest["allowedFiles"])
-            git(checkout, "add", ".")
-            git(checkout, "commit", "--allow-empty", "-m", "Repair")
-            store.artifact(run, "graph", compiler("analyze", root=str(checkout)))
+            if not patch_changes_files(files, patch):
+                store.artifact(
+                    run,
+                    f"repair-noop-{run['checkpoint']['repairs']}",
+                    {"reason": "model-proposed-no-effective-change"},
+                )
+                patch = queued_patch(
+                    f"{repair_id}-retry",
+                    files,
+                    repair_allowed,
+                    context=repair_context,
+                    diagnostics=(
+                        diagnostics + "\nThe previous repair proposal made no effective change. "
+                        "Return a changed allowed file that fixes the reported failure."
+                    )[-16000:],
+                    original=original,
+                )
+                if not patch_changes_files(files, patch):
+                    raise RuntimeError("Repair produced no effective change after retry")
+            accept_repair(repair_id, patch, repair_allowed)
         pool.close()
         pool = None
         transition("VERIFY")
@@ -331,15 +476,16 @@ def execute(store: Store, run: dict):
             if before.get(name) != after.get(name) and name not in manifest["allowedFiles"]
         )
         migration = compiler("assert", files=after, recipe=manifest)
-        hidden = (
-            check(checkout, manifest["id"], "hidden", image)["code"] == 0
-            if not forbidden and migration
-            else False
-        )
+        hidden = False
+        if not forbidden and migration:
+            hidden_result = check(checkout, manifest["id"], "hidden", image)
+            store.artifact(run, "hidden", hidden_result)
+            hidden = hidden_result["code"] == 0
         verification = {
-            "passed": not forbidden and migration and hidden,
+            "passed": not forbidden and migration and regression["passed"] is not False and hidden,
             "forbidden": forbidden,
             "migration": migration,
+            "regression": regression["passed"],
             "hidden": hidden,
         }
         run["checkpoint"]["verification"] = verification

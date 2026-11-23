@@ -17,8 +17,8 @@
     "benchmark": "python -m reposhift.cli benchmark",
     "legacy:cli": "tsx src/cli.ts",
     "legacy:benchmark": "tsx scripts/benchmark.ts",
-    "format": "prettier --write src tests scripts runner/check.cjs eslint.config.js",
-    "format:check": "prettier --check src tests scripts runner/check.cjs eslint.config.js",
+    "format": "prettier --write src tests scripts benchmarks/probes runner/check.cjs eslint.config.js",
+    "format:check": "prettier --check src tests scripts benchmarks/probes runner/check.cjs eslint.config.js",
     "demo:local": "tsx scripts/local-demo.ts",
     "test:workers": "tsx --test tests/integration/task-workers.test.ts",
     "pilot:local-model": "tsx scripts/local-model-pilot.ts"

@@ -1,0 +1,10 @@
+{
+  "id": "sdk-refund-01",
+  "version": 3,
+  "family": "sdk-options",
+  "archetype": "sdk-refund",
+  "split": "held-out",
+  "goal": "Migrate refund and fee quote calls to sdk-v2 options while preserving refund signs, capped fees, discount validation, and the receipt API.",
+  "allowedFiles": ["src/refund.ts", "src/fee.ts", "src/receipt.ts"],
+  "seedFiles": ["src/refund.ts", "src/fee.ts"]
+}

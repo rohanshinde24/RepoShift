@@ -1,0 +1,10 @@
+{
+  "id": "fs-metrics-01",
+  "version": 3,
+  "family": "fs-promises",
+  "archetype": "fs-metrics",
+  "split": "development",
+  "goal": "Replace callback-based readText with node:fs/promises and update metric loading while preserving numeric parsing, errors, and the metrics API.",
+  "allowedFiles": ["src/reader.ts", "src/values.ts", "src/metrics.ts"],
+  "seedFiles": ["src/reader.ts"]
+}

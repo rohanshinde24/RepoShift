@@ -1,0 +1,17 @@
+{
+  "id": "sdk-delivery-01",
+  "version": 4,
+  "family": "sdk-options",
+  "archetype": "delivery",
+  "split": "held-out",
+  "goal": "Migrate weight and rush delivery quotes to sdk-v2 options while preserving rounded weight charges and rush discounts.",
+  "allowedFiles": [
+    "src/weight.ts",
+    "src/rush.ts",
+    "src/delivery.ts"
+  ],
+  "seedFiles": [
+    "src/weight.ts",
+    "src/rush.ts"
+  ]
+}

@@ -18,6 +18,7 @@ def main():
     submit = actions.add_parser("submit")
     submit.add_argument("recipe")
     submit.add_argument("provider", choices=["reference", "ollama", "azure"], nargs="?", default="reference")
+    submit.add_argument("--configuration", choices=["A", "B", "C"], default="C")
     worker = actions.add_parser("worker")
     worker.add_argument("--once", action="store_true")
     for action in ("status", "cancel"):
@@ -25,18 +26,24 @@ def main():
     demo = actions.add_parser("demo")
     demo.add_argument("recipe", nargs="?", default="sdk-options")
     demo.add_argument("provider", choices=["reference", "ollama", "azure"], nargs="?", default="reference")
+    demo.add_argument("--configuration", choices=["A", "B", "C"], default="C")
     actions.add_parser("serve")
     benchmark = actions.add_parser("benchmark")
     benchmark.add_argument("--split", choices=["development", "held-out"], required=True)
     benchmark.add_argument("--provider", choices=["reference", "ollama", "azure"], default="reference")
     benchmark.add_argument("--quick", action="store_true")
+    benchmark.add_argument("--suite", choices=["v1", "v2", "v3", "v4"], default="v1")
+    benchmark.add_argument("--task", action="append")
+    benchmark.add_argument("--trials", type=int, default=3)
+    benchmark.add_argument("--compare-only", action="store_true")
     args = parser.parse_args()
     store = Store()
     store.init()
     if args.action == "submit":
         recipe(args.recipe)
         run = store.submit(
-            {"recipe": args.recipe, "provider": args.provider, "configuration": "C"}, str(uuid.uuid4())
+            {"recipe": args.recipe, "provider": args.provider, "configuration": args.configuration},
+            str(uuid.uuid4()),
         )
         print(json.dumps({"id": str(run["id"]), "state": run["state"]}))
     elif args.action == "status":
@@ -66,7 +73,8 @@ def main():
     elif args.action == "demo":
         recipe(args.recipe)
         run = store.submit(
-            {"recipe": args.recipe, "provider": args.provider, "configuration": "C"}, str(uuid.uuid4())
+            {"recipe": args.recipe, "provider": args.provider, "configuration": args.configuration},
+            str(uuid.uuid4()),
         )
         claimed = store.claim(str(uuid.uuid4()), run["id"])
         if claimed:
@@ -77,8 +85,16 @@ def main():
     elif args.action == "benchmark":
         from .benchmark import run_benchmark
 
-        result = run_benchmark(args.split, args.provider, args.quick)
-        print(json.dumps(result["summary"], indent=2))
+        result = run_benchmark(
+            args.split,
+            args.provider,
+            args.quick,
+            args.suite,
+            args.task,
+            args.trials,
+            args.compare_only,
+        )
+        print(json.dumps({"summary": result["summary"], "paired": result["paired"]}, indent=2))
 
 
 if __name__ == "__main__":

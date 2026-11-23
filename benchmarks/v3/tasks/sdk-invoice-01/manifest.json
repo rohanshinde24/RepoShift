@@ -1,0 +1,10 @@
+{
+  "id": "sdk-invoice-01",
+  "version": 3,
+  "family": "sdk-options",
+  "archetype": "sdk-invoice",
+  "split": "development",
+  "goal": "Migrate invoice quote calls from sdk-v1 positional arguments to sdk-v2 options while preserving discounts, taxes, validation, and the invoice API.",
+  "allowedFiles": ["src/charges.ts", "src/tax.ts", "src/invoice.ts"],
+  "seedFiles": ["src/charges.ts", "src/tax.ts"]
+}

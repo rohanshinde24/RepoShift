@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const phase = process.argv[2];
-if (!["build", "visible", "hidden"].includes(phase))
+if (!["build", "visible", "hidden", "probe"].includes(phase))
   throw new Error("Unknown check");
 function files(dir) {
   return fs

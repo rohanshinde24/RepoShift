@@ -1,0 +1,18 @@
+{
+  "id": "fs-ledger-05",
+  "version": 2,
+  "family": "fs-promises",
+  "archetype": "fs-ledger",
+  "split": "held-out",
+  "goal": "Migrate callback-based readText to node:fs/promises across ledger loaders while preserving numeric totals and errors.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/amounts.ts",
+    "src/currency.ts",
+    "src/ledger.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ],
+  "variant": 5
+}

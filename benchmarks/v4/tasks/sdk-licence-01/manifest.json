@@ -1,0 +1,17 @@
+{
+  "id": "sdk-licence-01",
+  "version": 4,
+  "family": "sdk-options",
+  "archetype": "licence",
+  "split": "held-out",
+  "goal": "Migrate seat and support quotes to sdk-v2 options while preserving seat clamps, discounts, and the licence API.",
+  "allowedFiles": [
+    "src/seats.ts",
+    "src/support.ts",
+    "src/licence.ts"
+  ],
+  "seedFiles": [
+    "src/seats.ts",
+    "src/support.ts"
+  ]
+}

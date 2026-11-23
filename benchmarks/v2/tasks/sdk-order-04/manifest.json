@@ -1,0 +1,18 @@
+{
+  "id": "sdk-order-04",
+  "version": 2,
+  "family": "sdk-options",
+  "archetype": "sdk-order",
+  "split": "development",
+  "goal": "Migrate SDK v1 quote calls to SDK v2 option objects while preserving order behavior and exported APIs.",
+  "allowedFiles": [
+    "src/line.ts",
+    "src/freight.ts",
+    "src/order.ts"
+  ],
+  "seedFiles": [
+    "src/line.ts",
+    "src/freight.ts"
+  ],
+  "variant": 4
+}

@@ -1,0 +1,17 @@
+{
+  "id": "sdk-penalty-01",
+  "version": 4,
+  "family": "sdk-options",
+  "archetype": "penalty",
+  "split": "held-out",
+  "goal": "Migrate overdue and damage penalty quotes to sdk-v2 options while preserving day clamps, waivers, and errors.",
+  "allowedFiles": [
+    "src/overdue.ts",
+    "src/damage.ts",
+    "src/penalty.ts"
+  ],
+  "seedFiles": [
+    "src/overdue.ts",
+    "src/damage.ts"
+  ]
+}

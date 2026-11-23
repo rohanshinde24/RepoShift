@@ -1,0 +1,10 @@
+{
+  "id": "fs-report-01",
+  "version": 3,
+  "family": "fs-promises",
+  "archetype": "fs-report",
+  "split": "held-out",
+  "goal": "Migrate callback-based readText to node:fs/promises and update report loading while preserving CSV parsing, errors, and the report API.",
+  "allowedFiles": ["src/reader.ts", "src/rows.ts", "src/report.ts"],
+  "seedFiles": ["src/reader.ts"]
+}

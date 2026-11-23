@@ -1,0 +1,237 @@
+{
+  "batch": "d5ea1183-6739-4d18-a222-058280d6f56d",
+  "suite": "v4",
+  "split": "development",
+  "selectedTasks": [
+    "fs-kv-01",
+    "fs-schedule-01",
+    "sdk-bundle-01",
+    "sdk-deposit-01"
+  ],
+  "trialsPerTask": 1,
+  "configurations": [
+    "A",
+    "C"
+  ],
+  "orderStrategy": "counterbalanced-by-task-and-trial",
+  "implementationHash": "9ff7497ba21eb64e61906a0d633df1bfe8f6c6b1bb89e68a5ba6c90042982b77",
+  "catalogHash": "062f5cdaabacbbd1abd22954181a33ac220af88c08a0b0405397f27ee096a863",
+  "probeCatalogHash": "82ce1f006ee98d64e621767e4075e9951ea8cb5bdee9a82556c2479fd3a083a4",
+  "model": "qwen2.5:7b",
+  "kind": "small-model-pilot-not-release-benchmark",
+  "attempts": [
+    {
+      "runId": "f962e8ed-6190-43dd-a77f-76c891ea62d3",
+      "task": "fs-kv-01",
+      "archetype": "kv",
+      "trial": 0,
+      "configuration": "A",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 57450,
+      "initialCheckFailed": false,
+      "tokens": 978,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "6a771bb6-b595-4095-a95f-89e1a1e1baee",
+      "task": "fs-kv-01",
+      "archetype": "kv",
+      "trial": 0,
+      "configuration": "C",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 410542,
+      "initialCheckFailed": false,
+      "tokens": 1644,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "4c0e0c27-0b5c-4f74-9e6d-51553cd7fa70",
+      "task": "fs-schedule-01",
+      "archetype": "schedule",
+      "trial": 0,
+      "configuration": "C",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 122400,
+      "initialCheckFailed": false,
+      "tokens": 1711,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "c062d288-4a49-4f8d-88aa-93980cfedaf7",
+      "task": "fs-schedule-01",
+      "archetype": "schedule",
+      "trial": 0,
+      "configuration": "A",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 68939,
+      "initialCheckFailed": false,
+      "tokens": 1034,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "66ab559c-8d6a-483e-afe1-c6a48f6dc064",
+      "task": "sdk-bundle-01",
+      "archetype": "bundle",
+      "trial": 0,
+      "configuration": "A",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 92113,
+      "initialCheckFailed": false,
+      "tokens": 868,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "e1fb43b3-9aad-4cf5-a490-d6ae5983c781",
+      "task": "sdk-bundle-01",
+      "archetype": "bundle",
+      "trial": 0,
+      "configuration": "C",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 117615,
+      "initialCheckFailed": false,
+      "tokens": 1555,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "329f9f56-fc9c-4e44-8b4c-349b41f810dc",
+      "task": "sdk-deposit-01",
+      "archetype": "reservation",
+      "trial": 0,
+      "configuration": "C",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 111213,
+      "initialCheckFailed": false,
+      "tokens": 1565,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "8572d400-7328-417d-8659-670cdd0ab310",
+      "task": "sdk-deposit-01",
+      "archetype": "reservation",
+      "trial": 0,
+      "configuration": "A",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 419622,
+      "initialCheckFailed": true,
+      "tokens": 6865,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    }
+  ],
+  "summary": [
+    {
+      "configuration": "A",
+      "attempts": 4,
+      "distinctTasks": 4,
+      "successes": 4,
+      "successRate": 1.0,
+      "deliveryRate": null,
+      "repairEligible": 1,
+      "repairRecovered": 1,
+      "repairRecovery": 1.0,
+      "latencyMs": {
+        "median": 80526.0,
+        "p95": 419622
+      },
+      "successfulLatencyMs": {
+        "median": 80526.0,
+        "p95": 419622
+      },
+      "tokens": 9745,
+      "estimatedCostUsd": null
+    },
+    {
+      "configuration": "C",
+      "attempts": 4,
+      "distinctTasks": 4,
+      "successes": 4,
+      "successRate": 1.0,
+      "deliveryRate": null,
+      "repairEligible": 0,
+      "repairRecovered": 0,
+      "repairRecovery": null,
+      "latencyMs": {
+        "median": 120007.5,
+        "p95": 410542
+      },
+      "successfulLatencyMs": {
+        "median": 120007.5,
+        "p95": 410542
+      },
+      "tokens": 6475,
+      "estimatedCostUsd": null
+    }
+  ],
+  "paired": {
+    "pairedAttempts": 4,
+    "distinctTasks": 4,
+    "distinctArchetypes": 4,
+    "byArchetype": [
+      {
+        "archetype": "bundle",
+        "pairedAttempts": 1,
+        "baselineSuccesses": 1,
+        "candidateSuccesses": 1
+      },
+      {
+        "archetype": "kv",
+        "pairedAttempts": 1,
+        "baselineSuccesses": 1,
+        "candidateSuccesses": 1
+      },
+      {
+        "archetype": "reservation",
+        "pairedAttempts": 1,
+        "baselineSuccesses": 1,
+        "candidateSuccesses": 1
+      },
+      {
+        "archetype": "schedule",
+        "pairedAttempts": 1,
+        "baselineSuccesses": 1,
+        "candidateSuccesses": 1
+      }
+    ],
+    "baselineSuccesses": 4,
+    "candidateSuccesses": 4,
+    "successDeltaPercentagePoints": 0.0,
+    "candidateOnlySuccesses": 0,
+    "baselineOnlySuccesses": 0,
+    "allAttemptMedianLatencyMs": {
+      "A": 80526.0,
+      "C": 120007.5
+    },
+    "allAttemptMedianReduction": -0.4902950599806273
+  }
+}

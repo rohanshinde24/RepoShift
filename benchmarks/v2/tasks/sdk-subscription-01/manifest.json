@@ -1,0 +1,10 @@
+{
+  "id": "sdk-subscription-01",
+  "version": 2,
+  "family": "sdk-options",
+  "archetype": "sdk-subscription",
+  "split": "held-out",
+  "goal": "Migrate subscription SDK quotes from positional arguments to option objects while preserving plan behavior and exported APIs.",
+  "allowedFiles": ["src/monthly.ts", "src/annual.ts", "src/plan.ts"],
+  "seedFiles": ["src/monthly.ts", "src/annual.ts"]
+}

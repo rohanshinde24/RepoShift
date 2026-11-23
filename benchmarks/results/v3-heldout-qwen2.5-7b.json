@@ -1,0 +1,198 @@
+{
+  "batch": "f4e15f26-e56e-4a2b-94c8-1aa83949d9ba",
+  "suite": "v3",
+  "split": "held-out",
+  "selectedTasks": [
+    "fs-report-01",
+    "sdk-fare-01",
+    "sdk-refund-01"
+  ],
+  "trialsPerTask": 1,
+  "configurations": [
+    "A",
+    "C"
+  ],
+  "orderStrategy": "counterbalanced-by-task-and-trial",
+  "implementationHash": "8a301db203e6d32332047bb21833441d1f4e795555eb4ff099e1c698a7ac27f3",
+  "catalogHash": "d4d3ed2f23c4a821ec5ce8d925532127f7edec3577c4befd0fa9bca84f264fd8",
+  "probeCatalogHash": "6dff89f7fcb175dbd920c59065c31a2789839b610428774b4666f7040e69d6b4",
+  "model": "qwen2.5:7b",
+  "kind": "small-model-pilot-not-release-benchmark",
+  "attempts": [
+    {
+      "runId": "6f93d1b7-6bd9-4cff-8d24-4a6ca0809d48",
+      "task": "fs-report-01",
+      "archetype": "fs-report",
+      "trial": 0,
+      "configuration": "A",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 39216,
+      "initialCheckFailed": false,
+      "tokens": 1037,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "77ed38d5-92ef-4f9b-b7aa-42eb844e1b6b",
+      "task": "fs-report-01",
+      "archetype": "fs-report",
+      "trial": 0,
+      "configuration": "C",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 49935,
+      "initialCheckFailed": false,
+      "tokens": 1710,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    },
+    {
+      "runId": "e535929e-1a74-48e0-8880-7f46ad844bf0",
+      "task": "sdk-fare-01",
+      "archetype": "sdk-fare",
+      "trial": 0,
+      "configuration": "C",
+      "provider": "ollama",
+      "success": false,
+      "delivery": null,
+      "latencyMs": 186307,
+      "initialCheckFailed": true,
+      "tokens": 8168,
+      "estimatedCostUsd": null,
+      "state": "FAILED",
+      "error": "Repair budget exhausted"
+    },
+    {
+      "runId": "fa6c2cc0-b048-4ded-8a28-37225a4b9979",
+      "task": "sdk-fare-01",
+      "archetype": "sdk-fare",
+      "trial": 0,
+      "configuration": "A",
+      "provider": "ollama",
+      "success": false,
+      "delivery": null,
+      "latencyMs": 79648,
+      "initialCheckFailed": true,
+      "tokens": 4163,
+      "estimatedCostUsd": null,
+      "state": "FAILED",
+      "error": "Repair produced no effective change after retry"
+    },
+    {
+      "runId": "a23db4ec-cd17-4c3b-8e74-b29dc85c8d30",
+      "task": "sdk-refund-01",
+      "archetype": "sdk-refund",
+      "trial": 0,
+      "configuration": "A",
+      "provider": "ollama",
+      "success": false,
+      "delivery": null,
+      "latencyMs": 164657,
+      "initialCheckFailed": true,
+      "tokens": 6079,
+      "estimatedCostUsd": null,
+      "state": "FAILED",
+      "error": "Repair produced no effective change after retry"
+    },
+    {
+      "runId": "b9f8e36b-e61b-4f8d-8f0c-91e37d540faf",
+      "task": "sdk-refund-01",
+      "archetype": "sdk-refund",
+      "trial": 0,
+      "configuration": "C",
+      "provider": "ollama",
+      "success": true,
+      "delivery": null,
+      "latencyMs": 42839,
+      "initialCheckFailed": false,
+      "tokens": 1524,
+      "estimatedCostUsd": null,
+      "state": "COMPLETE",
+      "error": null
+    }
+  ],
+  "summary": [
+    {
+      "configuration": "A",
+      "attempts": 3,
+      "distinctTasks": 3,
+      "successes": 1,
+      "successRate": 0.3333333333333333,
+      "deliveryRate": null,
+      "repairEligible": 2,
+      "repairRecovered": 0,
+      "repairRecovery": 0.0,
+      "latencyMs": {
+        "median": 79648,
+        "p95": 164657
+      },
+      "successfulLatencyMs": {
+        "median": 39216,
+        "p95": 39216
+      },
+      "tokens": 11279,
+      "estimatedCostUsd": null
+    },
+    {
+      "configuration": "C",
+      "attempts": 3,
+      "distinctTasks": 3,
+      "successes": 2,
+      "successRate": 0.6666666666666666,
+      "deliveryRate": null,
+      "repairEligible": 1,
+      "repairRecovered": 0,
+      "repairRecovery": 0.0,
+      "latencyMs": {
+        "median": 49935,
+        "p95": 186307
+      },
+      "successfulLatencyMs": {
+        "median": 46387.0,
+        "p95": 49935
+      },
+      "tokens": 11402,
+      "estimatedCostUsd": null
+    }
+  ],
+  "paired": {
+    "pairedAttempts": 3,
+    "distinctTasks": 3,
+    "distinctArchetypes": 3,
+    "byArchetype": [
+      {
+        "archetype": "fs-report",
+        "pairedAttempts": 1,
+        "baselineSuccesses": 1,
+        "candidateSuccesses": 1
+      },
+      {
+        "archetype": "sdk-fare",
+        "pairedAttempts": 1,
+        "baselineSuccesses": 0,
+        "candidateSuccesses": 0
+      },
+      {
+        "archetype": "sdk-refund",
+        "pairedAttempts": 1,
+        "baselineSuccesses": 0,
+        "candidateSuccesses": 1
+      }
+    ],
+    "baselineSuccesses": 1,
+    "candidateSuccesses": 2,
+    "successDeltaPercentagePoints": 33.333333333333336,
+    "candidateOnlySuccesses": 1,
+    "baselineOnlySuccesses": 0,
+    "allAttemptMedianLatencyMs": {
+      "A": 79648,
+      "C": 49935
+    },
+    "allAttemptMedianReduction": 0.37305393732422665
+  }
+}

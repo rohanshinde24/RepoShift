@@ -1,0 +1,15 @@
+{
+  "id": "fs-contacts-01",
+  "version": 4,
+  "family": "fs-promises",
+  "archetype": "contacts",
+  "split": "held-out",
+  "goal": "Migrate callback text reads to promises while preserving tab-separated contact validation, email normalization, and errors.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/contacts.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ]
+}

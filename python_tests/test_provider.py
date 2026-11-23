@@ -38,6 +38,8 @@ def test_local_provider_rejects_invalid_path_and_records_usage(monkeypatch):
         assert kwargs["json"]["format"]["properties"]["edits"]["items"]["properties"]["path"]["enum"] == [
             "src/retail.ts"
         ]
+        prompt = json.loads(kwargs["json"]["messages"][1]["content"])
+        assert "do not use undefined shorthand properties" in prompt["migrationConstraints"][0]
         return httpx.Response(
             200,
             request=httpx.Request("POST", _url),
@@ -79,3 +81,36 @@ def test_caller_without_old_sdk_is_left_unchanged_without_model_call(monkeypatch
     patch = propose(accounting, run, task)
     assert patch["edits"] == []
     assert accounting.reservations == []
+
+
+def test_fs_prompt_preserves_shared_reader_contract(monkeypatch):
+    files = tree(ROOT / "fixtures/fs-promises/base")
+    allowed = ["src/reader.ts"]
+    run = {"input": {"provider": "ollama"}}
+    task = {
+        "payload": {
+            "recipe": "fs-promises",
+            "files": files,
+            "allowed": allowed,
+            "original": {"src/reader.ts": files["src/reader.ts"]},
+        }
+    }
+
+    def response(url, **kwargs):
+        prompt = json.loads(kwargs["json"]["messages"][1]["content"])
+        assert "Keep callers on the shared readText API" in prompt["migrationConstraints"][0]
+        assert "Promise<string>" in prompt["migrationConstraints"][0]
+        assert prompt["originalFiles"] == task["payload"]["original"]
+        return httpx.Response(
+            200,
+            request=httpx.Request("POST", url),
+            json={
+                "model": "local-test",
+                "prompt_eval_count": 10,
+                "eval_count": 5,
+                "message": {"content": json.dumps({"base_hash": snapshot(files), "edits": []})},
+            },
+        )
+
+    monkeypatch.setattr(httpx, "post", response)
+    propose(Accounting(), run, task)

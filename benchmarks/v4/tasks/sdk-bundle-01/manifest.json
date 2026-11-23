@@ -1,0 +1,17 @@
+{
+  "id": "sdk-bundle-01",
+  "version": 4,
+  "family": "sdk-options",
+  "archetype": "bundle",
+  "split": "development",
+  "goal": "Migrate item and shipping quotes to sdk-v2 options while preserving quantity clamps, discounts, and the bundle API.",
+  "allowedFiles": [
+    "src/units.ts",
+    "src/shipping.ts",
+    "src/bundle.ts"
+  ],
+  "seedFiles": [
+    "src/units.ts",
+    "src/shipping.ts"
+  ]
+}

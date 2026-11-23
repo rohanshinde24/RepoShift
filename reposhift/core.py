@@ -1,13 +1,20 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
+import time
 import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SKIP = {".git", "node_modules", "dist", ".venv", "__pycache__"}
+LEGACY_RECIPES = {"sdk-options", "fs-promises", "sdk-wrapper", "fs-settings"}
+V2_ROOT = ROOT / "benchmarks" / "v2"
+V3_ROOT = ROOT / "benchmarks" / "v3"
+V4_ROOT = ROOT / "benchmarks" / "v4"
+PROBE_ROOT = ROOT / "benchmarks" / "probes"
 
 
 def digest(value: bytes | str) -> str:
@@ -65,11 +72,24 @@ def git(cwd: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def recipe_root(recipe_id: str) -> Path:
+    if recipe_id in LEGACY_RECIPES:
+        return ROOT / "fixtures" / recipe_id
+    if re.fullmatch(r"[a-z][a-z0-9-]{0,63}", recipe_id):
+        for suite_root in (V2_ROOT, V3_ROOT, V4_ROOT):
+            catalog_path = suite_root / "manifest.json"
+            if catalog_path.exists():
+                catalog = json.loads(catalog_path.read_text())
+                if recipe_id in catalog.get("tasks", {}):
+                    return suite_root / "tasks" / recipe_id
+    raise ValueError("Unsupported recipe")
+
+
 def recipe(recipe_id: str) -> dict:
-    if recipe_id not in {"sdk-options", "fs-promises", "sdk-wrapper", "fs-settings"}:
-        raise ValueError("Unsupported recipe")
-    root = ROOT / "fixtures" / recipe_id
+    root = recipe_root(recipe_id)
     manifest = json.loads((root / "manifest.json").read_text())
+    if manifest["id"] != recipe_id:
+        raise ValueError("Recipe ID does not match its directory")
     if recipe_id in {"sdk-wrapper", "fs-settings"}:
         expected = json.loads((ROOT / "benchmarks/v1/manifest.json").read_text())["tasks"][recipe_id]
         found = {}
@@ -80,15 +100,44 @@ def recipe(recipe_id: str) -> dict:
             found[name] = digest((root / name).read_bytes())
         if found != expected:
             raise ValueError("Frozen fixture changed")
+    elif recipe_id not in LEGACY_RECIPES:
+        catalog = json.loads((root.parent.parent / "manifest.json").read_text())
+        expected = catalog["tasks"][recipe_id]
+        found = {
+            path.relative_to(root).as_posix(): digest(path.read_bytes())
+            for path in root.rglob("*")
+            if path.is_file()
+        }
+        if found != expected["files"] or manifest["split"] != expected["split"]:
+            raise ValueError("Frozen benchmark task changed")
     return manifest
+
+
+def probe_path(recipe_id: str) -> Path | None:
+    manifest = recipe(recipe_id)
+    probe_root = V4_ROOT / "probes" if recipe_root(recipe_id).parent.parent == V4_ROOT else PROBE_ROOT
+    probe_manifest_path = probe_root / "manifest.json"
+    if not probe_manifest_path.exists():
+        if recipe_id not in LEGACY_RECIPES:
+            raise ValueError("Regression probe catalog is missing")
+        return None
+    catalog = json.loads(probe_manifest_path.read_text())
+    archetype = manifest.get("archetype")
+    expected = catalog.get("probes", {}).get(archetype)
+    if expected is None:
+        if recipe_id not in LEGACY_RECIPES:
+            raise ValueError("Regression probe is missing")
+        return None
+    path = probe_root / f"{archetype}.cjs"
+    if not path.is_file() or digest(path.read_bytes()) != expected:
+        raise ValueError("Frozen regression probe changed")
+    return path
 
 
 def validate_source(source: dict) -> None:
     repository, base_ref = source.get("repository"), source.get("baseRef")
     if not repository and not base_ref:
         return
-    import re
-
     allowed = os.getenv("REPOSHIFT_ALLOWED_REPOSITORIES", "").split(",")
     if (
         not isinstance(repository, str)
@@ -104,7 +153,7 @@ def prepare_source(source: dict, manifest: dict, checkout: Path) -> None:
     validate_source(source)
     repository, base_ref = source.get("repository"), source.get("baseRef")
     if not repository:
-        shutil.copytree(ROOT / "fixtures" / manifest["id"] / "base", checkout, dirs_exist_ok=True)
+        shutil.copytree(recipe_root(manifest["id"]) / "base", checkout, dirs_exist_ok=True)
         return
     git(checkout, "init", "-b", "main")
     git(
@@ -124,6 +173,13 @@ def prepare_source(source: dict, manifest: dict, checkout: Path) -> None:
     files = tree(checkout)
     if any(name not in files for name in manifest["allowedFiles"]):
         raise ValueError("Recipe source files are missing")
+    validate_reference_source(source, manifest, files)
+
+
+def validate_reference_source(source: dict, manifest: dict, files: dict[str, str]) -> None:
+    if source.get("repository") and source.get("provider") == "reference":
+        if files != tree(recipe_root(manifest["id"]) / "base"):
+            raise ValueError("Reference provider requires an exact frozen base repository")
 
 
 def apply_patch(root: Path, patch: dict, allowed: list[str]) -> None:
@@ -195,9 +251,14 @@ def check(root: Path, recipe_id: str, phase: str, image: str) -> dict:
         f"type=bind,source={root.resolve()},target=/input,readonly",
     ]
     if phase != "build":
-        fixture = ROOT / "fixtures" / recipe_id / f"{phase}.cjs"
+        fixture = probe_path(recipe_id) if phase == "probe" else recipe_root(recipe_id) / f"{phase}.cjs"
+        if fixture is None:
+            raise ValueError("Recipe has no regression probe")
         args += ["--mount", f"type=bind,source={fixture},target=/checks/check.cjs,readonly"]
+    started = time.monotonic_ns()
     try:
-        return command(args + [image, phase])
+        result = command(args + [image, phase])
     finally:
         command(["docker", "rm", "-f", name], timeout=15)
+    result["durationMs"] = (time.monotonic_ns() - started) // 1_000_000
+    return result

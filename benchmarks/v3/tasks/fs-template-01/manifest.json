@@ -1,0 +1,10 @@
+{
+  "id": "fs-template-01",
+  "version": 3,
+  "family": "fs-promises",
+  "archetype": "fs-template",
+  "split": "development",
+  "goal": "Migrate callback-based readText to node:fs/promises for template and data loading while preserving substitution, errors, and the render API.",
+  "allowedFiles": ["src/reader.ts", "src/template.ts", "src/data.ts", "src/render.ts"],
+  "seedFiles": ["src/reader.ts"]
+}

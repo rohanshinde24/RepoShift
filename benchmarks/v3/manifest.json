@@ -1,0 +1,98 @@
+{
+  "version": "v3",
+  "status": "frozen-before-model-evaluation",
+  "tasks": {
+    "fs-metrics-01": {
+      "split": "development",
+      "archetype": "fs-metrics",
+      "files": {
+        "base/src/metrics.ts": "c57b5a4f0505645685c3c4dd529dcb57a93af6c745057af5c59f66db26983ac3",
+        "base/src/reader.ts": "6b207dbae564a41e87402a48a55f25186cb5196e78dcd8c3ffeb0763666722da",
+        "base/src/values.ts": "89238b8091dfe3863e26b8bf44b3f5f4bcd5e8372887229d8e89e788be9d2d01",
+        "hidden.cjs": "0ef58a66d702a7c94e6c2ce960a29c6acee7890f0d3b6e60128b92a8d35e3d12",
+        "manifest.json": "7b63206297aa35a91644aaa0cd6a4891e02b6933729712f7d472710ce35a9a53",
+        "reference/src/reader.ts": "d8f325d6c2032dd60bf69cb3f119ddef8aaecc49c77d98e7827f83515e4911ca",
+        "reference/src/values.ts": "5069c514cbbf766dcd0b835c78ac9aff154b712a4638b3190b134874cfd93430",
+        "visible.cjs": "42ff9e29f8ce2c57599798a2bc2e1c66dcc9054ac459f78556ed7eb63a08c2f9"
+      }
+    },
+    "fs-report-01": {
+      "split": "held-out",
+      "archetype": "fs-report",
+      "files": {
+        "base/src/reader.ts": "6b207dbae564a41e87402a48a55f25186cb5196e78dcd8c3ffeb0763666722da",
+        "base/src/report.ts": "1d2c631fe7651b1cb469f0f0844b09cf6037cbde4e756b0481e29e50cc592b55",
+        "base/src/rows.ts": "43998b9986412b144382ba8d0bb56f24a1f2ac3d4380476f43117a4814436559",
+        "hidden.cjs": "58bde09e41d9d6fbac52efa5ed954d9d7aa4cbdc206bc6325dbc021c5cf45660",
+        "manifest.json": "f08efa6f480d95c9eb1a006c9697363e3668d05ec2ccaf37b1ac5eada72a2058",
+        "reference/src/reader.ts": "d8f325d6c2032dd60bf69cb3f119ddef8aaecc49c77d98e7827f83515e4911ca",
+        "reference/src/rows.ts": "78050e02638e348152bde6f11532bd0dd309fc036c11298c2d9f6920c5fccd18",
+        "visible.cjs": "b24403b7f7c6ccbfcaf11efa212c14633aa9376fbaeb2177fd959ffaa0cbcdb6"
+      }
+    },
+    "fs-template-01": {
+      "split": "development",
+      "archetype": "fs-template",
+      "files": {
+        "base/src/data.ts": "df37958ec25a3056e060f778d5b695e1e08d547e1f540f83cdb514ff7b50ca3a",
+        "base/src/reader.ts": "6b207dbae564a41e87402a48a55f25186cb5196e78dcd8c3ffeb0763666722da",
+        "base/src/render.ts": "4bd18a22b57948cc8db22ea255ccf13f86d15a8727ffeb5f4dcbe47977498b82",
+        "base/src/template.ts": "9bf34693055ceaeeb604f24021a3e8788a3a983bdbded2b88ff024dbcca475ee",
+        "hidden.cjs": "e66eb5d782b224a49225c0d86ae44be816cd30f0afcd64f8a61ebd1b445803ef",
+        "manifest.json": "7709f5c8bf7ac8348c92326e0bba4f6686841b8e4ae3c58b60726a8677a5ca08",
+        "reference/src/data.ts": "42b8cdf9f1dfabb8ba67b3a9d4eec993dd8d8bbe21e5ef6916f463a14a7bf13d",
+        "reference/src/reader.ts": "d8f325d6c2032dd60bf69cb3f119ddef8aaecc49c77d98e7827f83515e4911ca",
+        "reference/src/template.ts": "9b66184506407f82940e0aa3be1e026819be677e3b269fd3f895ae4a2be3308f",
+        "visible.cjs": "ba45053456cb7660663330d43114a9eb5f6880ca0370c829c90e49afb4242ad9"
+      }
+    },
+    "sdk-fare-01": {
+      "split": "held-out",
+      "archetype": "sdk-fare",
+      "files": {
+        "base/lib/sdk-v1.ts": "08d9dbad2dcc637d24bc81f2b803c365e28c3bde15591d6665b12305a120b713",
+        "base/lib/sdk-v2.ts": "671a596807228f7fabd185da4bd31f4fa0501dee9824f5144ff50c80a2fe2367",
+        "base/src/base-fare.ts": "d520457aafede441e3aa5debc8d1d4ae2b5365c2630d34deddffafeb72e08df5",
+        "base/src/route.ts": "1f7406804f84229af44a303a7f88212b46a7b4b601cc42adcdaaa888fdcdd919",
+        "base/src/toll.ts": "7072b60438b9cfbaabbaa7092c0b33f432c4b7269c19df1416dba5f235637853",
+        "hidden.cjs": "d0ecf70bf367b3314fbc6c19dc1d6e1e5f0bec4aab267ee0fb88a2b7723f3da4",
+        "manifest.json": "6d78bb7043200ec7805156c5e4d953624fe8198176507ff88afa154bd34064fe",
+        "reference/src/base-fare.ts": "0158d2f82fc0ad7381226d3816bb4e9df31a2fcdbe07ea75a8b795e16384e2a7",
+        "reference/src/toll.ts": "1f2d02efddae2890fad795f190f5773b3e865b07623781d460549783ae39d817",
+        "visible.cjs": "52302636a43434c1068e447051b47233f457bcf6b1c928e65a14e2274d9e969b"
+      }
+    },
+    "sdk-invoice-01": {
+      "split": "development",
+      "archetype": "sdk-invoice",
+      "files": {
+        "base/lib/sdk-v1.ts": "08d9dbad2dcc637d24bc81f2b803c365e28c3bde15591d6665b12305a120b713",
+        "base/lib/sdk-v2.ts": "671a596807228f7fabd185da4bd31f4fa0501dee9824f5144ff50c80a2fe2367",
+        "base/src/charges.ts": "0844f406ab53ec0dd135f81cb6e721ba2fa1d61119e69b997839affbe44a0c27",
+        "base/src/invoice.ts": "9fa65345ef25e5b65421f9833892846e53ea46e333f3fbefd92aab568fd2ce62",
+        "base/src/tax.ts": "158b6c9f142f264c68f6db0fde628e32f357197b6e99f7cd6ae19c198e9f57dd",
+        "hidden.cjs": "2bb48e82052fe758bc1c483126afbe8e10efce65ae1a5b2bf5e4c34766eb1f78",
+        "manifest.json": "6ced2e515d39e7863a1009e7d33a022aa5afdc4d02fd33a59a36eed0bd6c82d2",
+        "reference/src/charges.ts": "1378c05616fc5d44ab687746001647ff90c9db33ba91377ec52afb8c0c69deab",
+        "reference/src/tax.ts": "66e69fed5d03f94c03b4e9e13ff1529e2984623eaf0ba23ed4be051031672a1b",
+        "visible.cjs": "4ca7277c169afdd23ef13efa0199b1007a118aeef44e7ce7fd450637636e94a0"
+      }
+    },
+    "sdk-refund-01": {
+      "split": "held-out",
+      "archetype": "sdk-refund",
+      "files": {
+        "base/lib/sdk-v1.ts": "08d9dbad2dcc637d24bc81f2b803c365e28c3bde15591d6665b12305a120b713",
+        "base/lib/sdk-v2.ts": "671a596807228f7fabd185da4bd31f4fa0501dee9824f5144ff50c80a2fe2367",
+        "base/src/fee.ts": "ab7bf289c2d866f39800406ac0b8569ae82f7882c54a3fdad006254854344033",
+        "base/src/receipt.ts": "8f8225bc2fdecc4b5f30ac763630799348ceb2464c0017c4ca9ff65f37d7eaee",
+        "base/src/refund.ts": "9cd718d49a6a3fddbff4b315c7bd874255fe77ce3001ef8ffc1a352a818644c7",
+        "hidden.cjs": "608b14efb7a99609ed9bf7e97a31bc83c7e73b2b4e253f1c1c57fc0c2e941b3d",
+        "manifest.json": "24df1792fbf9fa64359394195b071d461730e9196ed9e4167684cf2d0d6777ab",
+        "reference/src/fee.ts": "9f2cf7fe4bbd05d338016b06b22476949d5ccdfc00fb586aeaa0f25e99fe093d",
+        "reference/src/refund.ts": "c9fce4a60bd8b6b9e2f6218fc76c67771ac7731bd205ed20c0376f79c0f9c020",
+        "visible.cjs": "465f9b3ff889a891f87a85d56fa72da461358f48de13601d0db444fce413f628"
+      }
+    }
+  }
+}

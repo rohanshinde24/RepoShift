@@ -1,0 +1,15 @@
+{
+  "id": "fs-tags-01",
+  "version": 4,
+  "family": "fs-promises",
+  "archetype": "tags",
+  "split": "held-out",
+  "goal": "Migrate callback text reads to promises while preserving JSON parsing, normalized unique tags, and error types.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/tags.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "sdk-fare-01",
+  "version": 3,
+  "family": "sdk-options",
+  "archetype": "sdk-fare",
+  "split": "held-out",
+  "goal": "Migrate route fare quote calls to sdk-v2 options while preserving distance clamping, toll discounts, errors, and the route API.",
+  "allowedFiles": ["src/base-fare.ts", "src/toll.ts", "src/route.ts"],
+  "seedFiles": ["src/base-fare.ts", "src/toll.ts"]
+}

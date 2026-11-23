@@ -6,7 +6,14 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 import pytest
 
 from reposhift.store import Store
-from reposhift.workflow import _task_heartbeat, execute
+from reposhift.workflow import _task_heartbeat, execute, patch_changes_files
+
+
+def test_repair_change_check_rejects_unchanged_file_content():
+    files = {"src/reader.ts": "before", "src/caller.ts": "caller"}
+    assert not patch_changes_files(files, {"edits": []})
+    assert not patch_changes_files(files, {"edits": [{"path": "src/reader.ts", "content": "before"}]})
+    assert patch_changes_files(files, {"edits": [{"path": "src/reader.ts", "content": "after"}]})
 
 
 def isolated_url(base: str, schema: str) -> str:
@@ -18,7 +25,7 @@ def isolated_url(base: str, schema: str) -> str:
     )
 
 
-@pytest.mark.parametrize("recipe_id", ["sdk-options", "fs-promises"])
+@pytest.mark.parametrize("recipe_id", ["sdk-options", "fs-promises", "fs-profile-01"])
 def test_python_workflow_completes_verified_reference_run(monkeypatch, recipe_id):
     admin = Store()
     schema = "py_test_" + uuid.uuid4().hex
@@ -37,7 +44,27 @@ def test_python_workflow_completes_verified_reference_run(monkeypatch, recipe_id
         result = execute(store, run)
         assert result["state"] == "COMPLETE", result["error"]
         assert result["checkpoint"]["verification"]["passed"] is True
+        assert result["checkpoint"]["verification"]["regression"] is (
+            True if recipe_id == "fs-profile-01" else None
+        )
         assert result["checkpoint"]["requests"] == 0
+        assert (
+            next(
+                artifact["value"]["passed"]
+                for artifact in store.artifacts(run["id"])
+                if artifact["name"] == "migration-0"
+            )
+            is True
+        )
+        if recipe_id == "fs-profile-01":
+            assert (
+                next(
+                    artifact["value"]["passed"]
+                    for artifact in store.artifacts(run["id"])
+                    if artifact["name"] == "regression-0"
+                )
+                is True
+            )
         states = [event["state"] for event in store.events(run["id"])]
         assert {"ANALYZE", "PLAN", "EXECUTE", "BUILD", "TEST", "VERIFY", "COMPLETE"} <= set(states)
     finally:

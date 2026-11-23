@@ -1,0 +1,15 @@
+{
+  "id": "fs-stats-01",
+  "version": 4,
+  "family": "fs-promises",
+  "archetype": "stats",
+  "split": "held-out",
+  "goal": "Migrate callback text reads to promises while preserving numeric summary results, invalid-number errors, and empty input.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/stats.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ]
+}

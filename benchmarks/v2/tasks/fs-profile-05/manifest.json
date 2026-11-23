@@ -1,0 +1,18 @@
+{
+  "id": "fs-profile-05",
+  "version": 2,
+  "family": "fs-promises",
+  "archetype": "fs-profile",
+  "split": "development",
+  "goal": "Replace callback-based readText with node:fs/promises and propagate the promise API through profile loading while preserving errors.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/name.ts",
+    "src/age.ts",
+    "src/profile.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ],
+  "variant": 5
+}

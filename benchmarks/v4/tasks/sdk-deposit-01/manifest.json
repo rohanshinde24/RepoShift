@@ -1,0 +1,17 @@
+{
+  "id": "sdk-deposit-01",
+  "version": 4,
+  "family": "sdk-options",
+  "archetype": "reservation",
+  "split": "development",
+  "goal": "Migrate lodging and cleaning deposit quotes to sdk-v2 options while preserving waiver behavior and the reservation API.",
+  "allowedFiles": [
+    "src/lodging.ts",
+    "src/cleaning.ts",
+    "src/reservation.ts"
+  ],
+  "seedFiles": [
+    "src/lodging.ts",
+    "src/cleaning.ts"
+  ]
+}

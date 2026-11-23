@@ -1,0 +1,15 @@
+{
+  "id": "fs-kv-01",
+  "version": 4,
+  "family": "fs-promises",
+  "archetype": "kv",
+  "split": "development",
+  "goal": "Migrate callback text reads to promises while preserving key-value parsing, duplicate key behavior, errors, and the lookup API.",
+  "allowedFiles": [
+    "src/reader.ts",
+    "src/kv.ts"
+  ],
+  "seedFiles": [
+    "src/reader.ts"
+  ]
+}

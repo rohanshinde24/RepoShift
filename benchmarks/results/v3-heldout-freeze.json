@@ -1,0 +1,24 @@
+{
+  "kind": "pre-held-out-evaluation-freeze",
+  "suite": "v3",
+  "heldOutTasks": [
+    "fs-report-01",
+    "sdk-fare-01",
+    "sdk-refund-01"
+  ],
+  "implementationHash": "8a301db203e6d32332047bb21833441d1f4e795555eb4ff099e1c698a7ac27f3",
+  "catalogHash": "d4d3ed2f23c4a821ec5ce8d925532127f7edec3577c4befd0fa9bca84f264fd8",
+  "probeCatalogHash": "6dff89f7fcb175dbd920c59065c31a2789839b610428774b4666f7040e69d6b4",
+  "model": "qwen2.5:7b",
+  "modelDigest": "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e",
+  "modelSettings": {
+    "temperature": 0,
+    "num_ctx": 8192,
+    "num_predict": 4096
+  },
+  "configurations": [
+    "A",
+    "C"
+  ],
+  "trialsPerTask": 1
+}
